@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Correct Aliased Grid Comparison</title>
+    <title>Stochastic Policy Example: Aliased Grid World</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -10,24 +10,20 @@
             --danger-color: #e74c3c;
             --light-gray: #ecf0f1;
             --medium-gray: #bdc3c7;
-            --dark-gray: #7f8c8d;
+            --wall-color: #7f8c8d;
             --text-color: #2c3e50;
-            --text-light: #95a5a6;
         }
         
         body {
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             color: var(--text-color);
-            line-height: 1.5;
         }
         
         h1 {
-            font-size: 1.8rem;
             text-align: center;
-            margin-bottom: 1.5rem;
             color: var(--primary-color);
         }
         
@@ -40,7 +36,7 @@
         }
         
         .policy {
-            width: 220px;
+            width: 280px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -49,74 +45,94 @@
         
         .grid {
             display: grid;
-            grid-template-columns: repeat(3, 70px);
-            grid-template-rows: repeat(3, 70px);
+            grid-template-columns: repeat(5, 50px);
+            grid-template-rows: repeat(2, 60px);
             gap: 3px;
             margin: 15px auto;
         }
         
         .cell {
-            width: 70px;
-            height: 70px;
+            width: 50px;
+            height: 60px;
             border: 1px solid var(--light-gray);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            position: relative;
+            font-size: 20px;
             background: white;
             border-radius: 3px;
+            position: relative;
+        }
+        
+        .cell.hidden {
+            visibility: hidden;
+            border: none;
         }
         
         .agent {
             background-color: var(--success-color);
             color: white;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 16px;
         }
         
         .treasure {
             background-color: gold;
-            font-size: 28px;
         }
         
         .aliased {
             background-color: var(--medium-gray);
         }
         
+        .wall {
+            background-color: var(--wall-color);
+        }
+        
         .arrow {
             position: absolute;
-            font-size: 20px;
+            font-size: 18px;
             color: var(--danger-color);
             font-weight: bold;
         }
         
         .right { right: 5px; }
         .left { left: 5px; }
-        .up { top: 5px; }
         .down { bottom: 5px; }
         
         button {
             padding: 8px 16px;
-            margin: 8px 0;
+            margin: 4px 0;
             background-color: var(--secondary-color);
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             width: 100%;
-            font-weight: 500;
+        }
+        
+        .reset-btn {
+            background-color: var(--danger-color);
         }
         
         .result {
             min-height: 20px;
-            font-size: 0.9rem;
-            margin-top: 8px;
+            margin: 8px 0;
             text-align: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: var(--success-color);
+        }
+        
+        .failure {
+            color: var(--danger-color);
         }
         
         .stuck {
@@ -138,76 +154,111 @@
     </style>
 </head>
 <body>
-    <h1>Correct Aliased Grid Comparison</h1>
+    <h1>Stochastic Policy Example: Aliased Grid World</h1>
     
     <div class="grid-container">
         <div class="policy">
-            <h3>Deterministic (→)</h3>
-            <div class="grid" id="det-right-grid"></div>
-            <button id="det-right-run">Run</button>
-            <div class="result" id="det-right-result"></div>
-        </div>
-        
-        <div class="policy">
-            <h3>Deterministic (←)</h3>
+            <h3>Deterministic (→ from left)</h3>
             <div class="grid" id="det-left-grid"></div>
-            <button id="det-left-run">Run</button>
+            <button id="det-left-run">Run → Policy</button>
+            <button id="det-left-reset" class="reset-btn">Reset</button>
             <div class="result" id="det-left-result"></div>
         </div>
         
         <div class="policy">
-            <h3>Stochastic (50/50 ←/→)</h3>
+            <h3>Deterministic (→ from right)</h3>
+            <div class="grid" id="det-right-grid"></div>
+            <button id="det-right-run">Run → Policy</button>
+            <button id="det-right-reset" class="reset-btn">Reset</button>
+            <div class="result" id="det-right-result"></div>
+        </div>
+        
+        <div class="policy">
+            <h3>Stochastic (50/50 in gray)</h3>
             <div class="grid" id="sto-grid"></div>
-            <button id="sto-run">Run</button>
+            <button id="sto-run">Run Stochastic Policy</button>
+            <button id="sto-reset" class="reset-btn">Reset</button>
             <div class="result" id="sto-result"></div>
         </div>
     </div>
     
-    <div class="explanation">
-        <h3>Key Observations</h3>
-        <p>This grid demonstrates true aliasing without blocked paths:</p>
-        <ul>
-            <li><strong>→ Deterministic</strong>: Finds treasure by moving right</li>
-            <li><strong>← Deterministic</strong>: Gets stuck moving left between identical states</li>
-            <li><strong>Stochastic</strong>: Can escape the loop by sometimes moving right</li>
-        </ul>
-        <p>In white cells, the agent can move in any direction (up, down, left, right).</p>
-        <p>Arrows are only shown in gray (aliased) states to indicate the forced movement policy.</p>
-    </div>
+<div class="explanation">
+  <h3>Policy Behavior</h3>
+
+  <h4>Deterministic Policies:</h4>
+  <p>
+    In aliased (gray) states, optimal deterministic policies must choose consistent actions:<br>
+    🔸 Always move left in both gray states (← ←)<br>
+    🔸 Always move right in both gray states (→ →)<br>
+    This consistency can lead to suboptimal behavior when starting from certain positions.
+  </p>
+
+  <h4>Stochastic Policies:</h4>
+  <p>
+    Optimal solution: Randomize actions in aliased states<br>
+    🔹 π(right | walls above/below) = 0.5<br>
+    🔹 π(left | walls above/below) = 0.5
+  </p>
+</div>
+
 
     <script>
-        // Correct 3x3 grid with no blocking walls
+        // Custom grid configuration
         const gridConfig = [
-            [' ', 'A', ' '],  // A = aliased state
-            [' ', ' ', ' '],  // Regular states
-            [' ', 'A', 'T']   // T = treasure
+            // Top row (row 0)
+            ['S', 'A', 'M', 'A', 'S'],
+            // Bottom row (row 1)
+            ['w', 'X', 'T', 'X', 'w']
         ];
         
         // Game states
         const states = {
+            'det-left': { 
+                pos: [0, 0], // Start at left white block
+                running: false, 
+                policy: 'right',
+                resultEl: document.getElementById('det-left-result')
+            },
             'det-right': { 
-                pos: [0, 1], 
+                pos: [0, 4], // Start at right white block
                 running: false, 
                 policy: 'right',
                 resultEl: document.getElementById('det-right-result')
             },
-            'det-left': { 
-                pos: [0, 1], 
-                running: false, 
-                policy: 'left',
-                resultEl: document.getElementById('det-left-result')
-            },
             'sto': { 
-                pos: [0, 1], 
+                pos: [0, 0], // Start at left white block
                 running: false,
                 resultEl: document.getElementById('sto-result')
             }
         };
         
-        // Initialize grids
+        function cellExists(row, col) {
+            return gridConfig[row][col] !== 'X';
+        }
+        
+        function isWall(row, col) {
+            return gridConfig[row][col] === 'w';
+        }
+        
+        function isAliased(row, col) {
+            return gridConfig[row][col] === 'A';
+        }
+        
+        function isMiddle(row, col) {
+            return gridConfig[row][col] === 'M';
+        }
+        
+        function isStart(row, col) {
+            return gridConfig[row][col] === 'S';
+        }
+        
+        function isTreasure(row, col) {
+            return gridConfig[row][col] === 'T';
+        }
+        
         function renderGrids() {
+            renderGrid('det-left-grid', states['det-left'].pos, 'right');
             renderGrid('det-right-grid', states['det-right'].pos, 'right');
-            renderGrid('det-left-grid', states['det-left'].pos, 'left');
             renderGrid('sto-grid', states['sto'].pos, 'stochastic');
         }
         
@@ -215,25 +266,26 @@
             const gridElement = document.getElementById(gridId);
             gridElement.innerHTML = '';
             
-            for (let row = 0; row < 3; row++) {
-                for (let col = 0; col < 3; col++) {
+            for (let row = 0; row < 2; row++) {
+                for (let col = 0; col < 5; col++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     
-                    if (gridConfig[row][col] === 'T') {
+                    if (!cellExists(row, col)) {
+                        cell.classList.add('hidden');
+                        gridElement.appendChild(cell);
+                        continue;
+                    }
+                    
+                    if (isTreasure(row, col)) {
                         cell.className += ' treasure';
                         cell.textContent = '💰';
-                    } else if (gridConfig[row][col] === 'A') {
+                    } else if (isAliased(row, col)) {
                         cell.className += ' aliased';
                         if (policy === 'right') {
                             const arrow = document.createElement('div');
                             arrow.className = `arrow right`;
                             arrow.textContent = '→';
-                            cell.appendChild(arrow);
-                        } else if (policy === 'left') {
-                            const arrow = document.createElement('div');
-                            arrow.className = `arrow left`;
-                            arrow.textContent = '←';
                             cell.appendChild(arrow);
                         } else if (policy === 'stochastic') {
                             const arrow1 = document.createElement('div');
@@ -246,6 +298,15 @@
                             arrow2.textContent = '→';
                             cell.appendChild(arrow2);
                         }
+                    } else if (isMiddle(row, col)) {
+                        const arrow = document.createElement('div');
+                        arrow.className = `arrow down`;
+                        arrow.textContent = '↓';
+                        cell.appendChild(arrow);
+                    } else if (isWall(row, col)) {
+                        cell.className += ' wall';
+                    } else if (isStart(row, col)) {
+                        // White block - no special styling
                     }
                     
                     gridElement.appendChild(cell);
@@ -256,32 +317,30 @@
         }
         
         function updateAgentPosition(gridId, pos) {
-            // Clear previous agent
             document.querySelectorAll(`#${gridId} .agent`).forEach(el => el.remove());
             
             const [row, col] = pos;
-            const cells = document.querySelectorAll(`#${gridId} .cell`);
-            const index = row * 3 + col;
-            if (cells[index]) {
-                const agent = document.createElement('div');
-                agent.className = 'agent';
-                agent.textContent = '🤖';
-                cells[index].appendChild(agent);
-                
-                // Check if stuck
-                const stateKey = gridId.replace('-grid', '');
-                if (states[stateKey]?.stuck) {
-                    cells[index].classList.add('stuck');
+            const cells = document.querySelectorAll(`#${gridId} .cell:not(.hidden)`);
+            
+            let index = 0;
+            for (let r = 0; r < 2; r++) {
+                for (let c = 0; c < 5; c++) {
+                    if (!cellExists(r, c)) continue;
+                    if (r === row && c === col) {
+                        const agent = document.createElement('div');
+                        agent.className = 'agent';
+                        agent.textContent = '🤖';
+                        cells[index].appendChild(agent);
+                        
+                        const stateKey = gridId.replace('-grid', '');
+                        if (states[stateKey]?.stuck) {
+                            cells[index].classList.add('stuck');
+                        }
+                        return;
+                    }
+                    index++;
                 }
             }
-        }
-        
-        function isAliased(row, col) {
-            return gridConfig[row][col] === 'A';
-        }
-        
-        function isTreasure(row, col) {
-            return gridConfig[row][col] === 'T';
         }
         
         function moveAgent(type) {
@@ -291,66 +350,76 @@
             const [row, col] = state.pos;
             
             if (isTreasure(row, col)) {
-                state.resultEl.textContent = "Found treasure!";
+                state.resultEl.textContent = "✅ Found treasure!";
+                state.resultEl.className = "result success";
                 state.running = false;
                 return;
             }
             
-            if (isAliased(row, col)) {
-                // In aliased state
-                if (type.startsWith('det')) {
-                    // Deterministic policy
-                    const dc = state.policy === 'left' ? -1 : 1;
-                    const newCol = col + dc;
-                    
-                    // Check boundaries
-                    if (newCol >= 0 && newCol <= 2) {
-                        state.pos = [row, newCol];
+            const moves = [];
+            
+            if (col < 4 && cellExists(row, col + 1) && !isWall(row, col + 1)) {
+                moves.push([0, 1]);
+            }
+            if (col > 0 && cellExists(row, col - 1) && !isWall(row, col - 1)) {
+                moves.push([0, -1]);
+            }
+            if (row === 0 && cellExists(1, col) && !isWall(1, col)) {
+                moves.push([1, 0]);
+            }
+            if (row === 1 && cellExists(0, col) && !isWall(0, col)) {
+                moves.push([-1, 0]);
+            }
+            
+            if (moves.length > 0) {
+                let move;
+                
+                if (isMiddle(row, col)) {
+                    // Always move down from middle
+                    move = moves.find(m => m[0] === 1) || moves[0];
+                }
+                else if (isAliased(row, col)) {
+                    if (type === 'det-left' || type === 'det-right') {
+                        // Always prefer right in aliased states
+                        move = moves.find(m => m[1] === 1) || moves[0];
                     } else {
-                        // Stay in place if would move out of bounds
-                        state.pos = [row, col];
-                    }
-                    
-                    // Check for stuck condition (only for left policy)
-                    if (type === 'det-left' && row === 2 && col === 1) {
-                        state.stuck = true;
-                        state.resultEl.textContent = "Stuck in loop!";
-                        state.running = false;
+                        // Stochastic policy
+                        const possibleMoves = moves.filter(m => m[1] !== 0);
+                        if (possibleMoves.length > 0) {
+                            move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                        } else {
+                            move = moves[Math.floor(Math.random() * moves.length)];
+                        }
                     }
                 } else {
-                    // Stochastic policy (50/50 left/right in aliased states)
-                    const dc = Math.random() < 0.5 ? -1 : 1;
-                    const newCol = col + dc;
-                    
-                    // Check boundaries
-                    if (newCol >= 0 && newCol <= 2) {
-                        state.pos = [row, newCol];
+                    if (type === 'det-left' || type === 'det-right') {
+                        // Prefer right, then down, then left
+                        move = moves.find(m => m[1] === 1) || 
+                               moves.find(m => m[0] === 1) || 
+                               moves.find(m => m[1] === -1) || 
+                               moves[0];
                     } else {
-                        // Stay in place if would move out of bounds
-                        state.pos = [row, col];
+                        // Stochastic policy
+                        move = moves[Math.floor(Math.random() * moves.length)];
                     }
                 }
-            } else {
-                // Regular movement - can move in any direction
-                const moves = [];
-                if (col < 2) moves.push([0, 1]); // Right
-                if (col > 0) moves.push([0, -1]); // Left
-                if (row > 0) moves.push([-1, 0]); // Up
-                if (row < 2) moves.push([1, 0]); // Down
                 
-                if (moves.length > 0) {
-                    const [dr, dc] = moves[Math.floor(Math.random() * moves.length)];
-                    state.pos = [row + dr, col + dc];
+                const [dr, dc] = move;
+                state.pos = [row + dr, col + dc];
+                
+                if ((type === 'det-left' || type === 'det-right') && isAliased(row, col)) {
+                    const [newRow, newCol] = state.pos;
+                    if (isAliased(newRow, newCol) && type === 'det-right') {
+                        // Only the right-starting agent gets stuck
+                        state.stuck = true;
+                        state.resultEl.textContent = "❌ Stuck in aliased loop!";
+                        state.resultEl.className = "result failure";
+                        state.running = false;
+                    }
                 }
+                
+                updateAgentPosition(`${type}-grid`, state.pos);
             }
-            
-            // Check for treasure
-            if (isTreasure(state.pos[0], state.pos[1])) {
-                state.resultEl.textContent = "Found treasure!";
-                state.running = false;
-            }
-            
-            updateAgentPosition(`${type}-grid`, state.pos);
             
             if (state.running) {
                 setTimeout(() => moveAgent(type), 600);
@@ -359,24 +428,19 @@
         
         function resetAgent(type) {
             const state = states[type];
-            state.pos = [0, 1];  // Start in top aliased state
+            // Reset to starting positions
+            if (type === 'det-right') state.pos = [0, 4];
+            else if (type === 'det-left') state.pos = [0, 0];
+            else state.pos = [0, 0];
             state.running = false;
             state.stuck = false;
             state.resultEl.textContent = "";
+            state.resultEl.className = "result";
             updateAgentPosition(`${type}-grid`, state.pos);
         }
         
-        // Initialize
         function init() {
             renderGrids();
-            
-            document.getElementById('det-right-run').addEventListener('click', () => {
-                if (!states['det-right'].running) {
-                    resetAgent('det-right');
-                    states['det-right'].running = true;
-                    moveAgent('det-right');
-                }
-            });
             
             document.getElementById('det-left-run').addEventListener('click', () => {
                 if (!states['det-left'].running) {
@@ -386,12 +450,32 @@
                 }
             });
             
+            document.getElementById('det-right-run').addEventListener('click', () => {
+                if (!states['det-right'].running) {
+                    resetAgent('det-right');
+                    states['det-right'].running = true;
+                    moveAgent('det-right');
+                }
+            });
+            
             document.getElementById('sto-run').addEventListener('click', () => {
                 if (!states['sto'].running) {
                     resetAgent('sto');
                     states['sto'].running = true;
                     moveAgent('sto');
                 }
+            });
+            
+            document.getElementById('det-left-reset').addEventListener('click', () => {
+                resetAgent('det-left');
+            });
+            
+            document.getElementById('det-right-reset').addEventListener('click', () => {
+                resetAgent('det-right');
+            });
+            
+            document.getElementById('sto-reset').addEventListener('click', () => {
+                resetAgent('sto');
             });
         }
         
